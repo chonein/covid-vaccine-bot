@@ -77,16 +77,18 @@ def active_providers(provider_info_list: list) -> set:
 
 def create_in_range_lst(source_features: list, zip_map_dict: dict,
                         user_zip_code: str, radius: int, active_set: set,
-                        second_dose: bool) -> list:
+                        second_dose: bool, provider_filter: list) -> list:
     """ Create a list of the vaccination spots in range of user. """
     in_range_locs = []
-    user_coords = zip_map_dict[user_zip_code]
+    user_coords = zip_map_dict[user_zip_code][0]
     for loc in source_features:
         if loc['properties']['appointments_available'] and\
            loc['properties']['provider_brand'].lower() in active_set and\
            (loc['properties']['appointments_available_all_doses'] is True or
             loc['properties']['appointments_available_2nd_dose_only'] is
-                second_dose):
+                second_dose) and \
+            (len(provider_filter) == 0 or
+                loc['properties']['provider_brand_name'] in provider_filter):
             # format [latitude, longitude]
             loc_coord = loc['geometry']['coordinates'][::-1]
             if loc_coord != [None, None]:
@@ -102,7 +104,7 @@ def create_message_list(in_range_list: list, user_zip_code: str,
     a clean list of strings ready to be sent by email.
     """
     message_list = []
-    user_coords = zip_map_dict[user_zip_code]
+    user_coords = zip_map_dict[user_zip_code][0]
     for location in in_range_list:
         store_name = location['properties']['provider_brand_name']
         address = f"{location['properties']['address']}, " +\
@@ -115,13 +117,14 @@ def create_message_list(in_range_list: list, user_zip_code: str,
         radius = radius[:radius.find('.')+2]
         url = location['properties']['url']
         message = f'{store_name}\n{address}\n' +\
-                  f'Distance to store: {radius} miles\n{url}\n' +\
-                  'Reply stop to stop these notifications.'
-        message_list.append(message)
-    return message_list
+                  f'Distance to store: {radius} miles\n{url}\n'
+        message_list.append((radius, message))
+    message_list.sort()
+    return [message_tup[1] for message_tup in message_list]
 
 
-def get_data(radius: int, user_zip_code: str, state_dict: dict) -> list:
+def get_data(radius: int, user_zip_code: str, state_dict: dict,
+             provider_filter: list) -> list:
     """ Function calls the functions above to create a list of
     valid vaccination locations.
     """
@@ -129,7 +132,7 @@ def get_data(radius: int, user_zip_code: str, state_dict: dict) -> list:
     active_set = active_providers(state_dict['metadata']['provider_brands'])
     in_range_lst = create_in_range_lst(state_dict['features'], ZIP_MAP_DICT,
                                        user_zip_code, radius,
-                                       active_set, False)
+                                       active_set, False, provider_filter)
     return create_message_list(in_range_lst, user_zip_code, ZIP_MAP_DICT)
 
 
@@ -173,7 +176,8 @@ def send_email(receiver_email_id: str, subject: str, body: str) -> None:
 
 
 def add_phone_user(users_dict: dict, phone_number: str, radius: int,
-                   user_zip_code: str, state: str, carrier: str) -> None:
+                   user_zip_code: str, state: str, carrier: str,
+                   provider_filter: list) -> None:
     """ Adds user to users_dict where phone_number is the index. """
     if user_zip_code in ZIP_MAP_DICT:
         users_dict[phone_number] = {'radius': radius,
@@ -181,11 +185,13 @@ def add_phone_user(users_dict: dict, phone_number: str, radius: int,
                                     'state': state,
                                     'carrier': carrier,
                                     'usr_prevs_mes': [],
-                                    'mes_limit': 150}
+                                    'mes_limit': 150,
+                                    'provider_filter': provider_filter}
 
 
 def add_email_user(users_dict: dict, receiver_email_id: str, radius: int,
-                   user_zip_code: str, state: str) -> None:
+                   user_zip_code: str, state: str, provider_filter: list)\
+        -> None:
     """ Adds user to users_dict where email is the index. """
     if user_zip_code in ZIP_MAP_DICT:
         users_dict[receiver_email_id] = {'radius': radius,
@@ -193,7 +199,8 @@ def add_email_user(users_dict: dict, receiver_email_id: str, radius: int,
                                          'state': state,
                                          'carrier': None,
                                          'usr_prevs_mes': [],
-                                         'mes_limit': 150}
+                                         'mes_limit': 150,
+                                         'provider_filter': provider_filter}
 
 
 def send_message(receiver: str, subject: str, body: str,
@@ -216,20 +223,23 @@ def update_users_dict(users_dict: dict, start_idx: int) -> int:
     row_num = start_idx
     while row_num < len(rows):
         row = rows[row_num]
-        if row[1] not in users_dict:
-            state = row[1]
-            zip_code = row[2]
-            radius = int(row[3])
-            notif_type = row[4]
+        # this needs to be fixed soon!!
+        zip_code = row[1]
+        state = ZIP_MAP_DICT[zip_code][1]
+        radius = int(row[2])
+        notif_type = row[3]
+        provider_filter: list = row[7].split(', ')
+        if 'All of the options below' in provider_filter:
+            provider_filter = []
         if notif_type == 'Phone':
-            phone_num = row[6]
-            carrier = row[7]
+            phone_num = row[5]
+            carrier = row[6]
             add_phone_user(users_dict, phone_num,
-                           radius, zip_code, state, carrier)
+                           radius, zip_code, state, carrier, provider_filter)
         else:
-            receiver_email = row[5]
+            receiver_email = row[4]
             add_email_user(users_dict, receiver_email, radius,
-                           zip_code, state)
+                           zip_code, state, provider_filter)
         row_num += 1
         start_idx = row_num
     return start_idx
@@ -292,11 +302,14 @@ def send_message_list(message_lst: list, reciever: str, receiver_data: dict,
     new_prev_mes: list = []
     final_message = ''
     for message in message_lst:
+        if len(new_prev_mes) == 5:
+            break
         if message not in receiver_data['usr_prevs_mes']:
             receiver_data['mes_limit'] -= 1
             final_message += f'\n{message}'
             new_prev_mes.append(message)
     receiver_data['usr_prevs_mes'] = new_prev_mes
+    final_message += '\nReply stop to stop these notifications.'
     if final_message != '':
         send_message(reciever,
                      'New Vaccine Locations Detected!',
@@ -425,7 +438,8 @@ def send_vax_messages() -> None:
                 message_lst = get_data(users_dict[reciever]['radius'],
                                        users_dict[reciever]['user_zip_code'],
                                        all_states_dict[users_dict[reciever]
-                                                       ['state']])
+                                                       ['state']],
+                                       users_dict[reciever]['provider_filter'])
                 send_message_list(message_lst, reciever, users_dict[reciever],
                                   users_to_remove, carriers_dict)
             remove_users(users_to_remove, users_dict, end_of_service,
