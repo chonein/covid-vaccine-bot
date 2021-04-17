@@ -56,6 +56,7 @@ def unsubscribers(number_of_checked_emails, sender_email_id, sender_email_id_pas
                     elif From.find('<') != -1 and From.find('>') != -1:
                         unsubs_lst.add(
                             From[From.find('<')+1:From.find('>')])
+    
     # close the connection and logout
     imap.close()
     imap.logout()
