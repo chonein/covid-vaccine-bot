@@ -290,16 +290,19 @@ def send_message_list(message_lst: list, reciever: str, receiver_data: dict,
                       users_to_remove: list, carriers_dict: dict) -> None:
     """ Sends the message list to the receiver """
     new_prev_mes: list = []
+    final_message = ''
     for message in message_lst:
         if message not in receiver_data['usr_prevs_mes']:
             receiver_data['mes_limit'] -= 1
-            send_message(reciever,
-                         'New Vaccine Location Detected!',
-                         message,
-                         receiver_data['carrier'],
-                         carriers_dict)
+            final_message += f'\n{message}'
             new_prev_mes.append(message)
     receiver_data['usr_prevs_mes'] = new_prev_mes
+    if final_message != '':
+        send_message(reciever,
+                     'New Vaccine Locations Detected!',
+                     final_message,
+                     receiver_data['carrier'],
+                     carriers_dict)
     if receiver_data['mes_limit'] <= 0:
         users_to_remove.append(reciever)
 
