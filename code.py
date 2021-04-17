@@ -327,7 +327,7 @@ def load_dependencies() -> Tuple:
 
 
 def check_cache(users_dict: dict) -> Tuple:
-    """ Check if cache files from previous runs exist. 
+    """ Check if cache files from previous runs exist.
     If creates creates neww data from scratch.
     """
     try:

@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/code.cpython-39.pyc
+__pycache__/forms.cpython-39.pyc
+code_junk.py
+credentials.json
+token.json
+start_idx.txt
+users.json
+vax.ipynb
+VaxBotKey.json
+config.json
+token.json
+users.json
+__pycache__/create_config_json.cpython-39.pyc
+num_checked_emails.txt
+__pycache__
+.mypy_cache
