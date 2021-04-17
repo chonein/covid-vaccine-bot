@@ -55,6 +55,9 @@ class Data:
 			countries.append(country['name'].lower())
 
 		return countries
+	
+	def get_active_cases(self):
+    	pass
 
 	def update_data(self):
 		response = requests.post(f'https://www.parsehub.com/api/v2/projects/{self.project_token}/run', params=self.params)
@@ -75,8 +78,10 @@ class Data:
 		t.start()
 	
     	
-def main():
+def main(question: str):
+	""" takes in question from user, then trasnslates an answer """
 	print("Started Program")
+	
 	data = Data(API_KEY, PROJECT_TOKEN)
 	END_PHRASE = "stop"
 	country_list = data.get_list_of_countries()
@@ -96,9 +101,8 @@ def main():
 	UPDATE_COMMAND = "update"
 
 	print("Listening...")
-	text = "how many total worldwide cases are there"
+	text = question
 	print(text)
-	
 	
 	result = None
 
@@ -119,9 +123,11 @@ def main():
 		result = "Data is being updated. This may take a moment!"
 		data.update_data()
 
-	if result:
-		print(result)
-		
+	# if result:
+	# 	print(result)
+	
+	return result
 
-main()
+if __name__ == "__main__":
+    main()
 
