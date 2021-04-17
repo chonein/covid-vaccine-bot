@@ -73,7 +73,8 @@ class Data:
 
 		t = threading.Thread(target=poll)
 		t.start()
-
+	
+    	
 def main():
 	print("Started Program")
 	data = Data(API_KEY, PROJECT_TOKEN)
@@ -97,6 +98,8 @@ def main():
 	print("Listening...")
 	text = "how many total worldwide cases are there"
 	print(text)
+	
+	
 	result = None
 
 	for pattern, func in COUNTRY_PATTERNS.items():
@@ -121,3 +124,4 @@ def main():
 		
 
 main()
+
