@@ -5,7 +5,7 @@ import signal
 from math import radians, sin, cos, sqrt, atan2
 import smtplib
 import forms
-import email_read
+from email_read import unsubscribers_bot_rqsts
 from typing import Any, Optional, Tuple
 
 SENDER_EMAIL_ID = ''  # don't change
@@ -15,6 +15,7 @@ TIME_BTWN_BACKUPS = 60*10
 START_IDX_FNAME = 'start_idx.txt'
 CHECKED_EMAILS_FNAME = 'num_checked_emails.txt'
 ZIP_MAP_DICT: dict = dict()
+CARRIERS_DICT: dict = dict()
 
 
 def get_json_dict(url: str) -> dict:
@@ -75,12 +76,12 @@ def active_providers(provider_info_list: list) -> set:
     return active_set
 
 
-def create_in_range_lst(source_features: list, zip_map_dict: dict,
-                        user_zip_code: str, radius: int, active_set: set,
-                        second_dose: bool, provider_filter: list) -> list:
+def create_in_range_lst(source_features: list, user_zip_code: str, radius: int,
+                        active_set: set, second_dose: bool,
+                        provider_filter: list) -> list:
     """ Create a list of the vaccination spots in range of user. """
     in_range_locs = []
-    user_coords = zip_map_dict[user_zip_code][0]
+    user_coords = ZIP_MAP_DICT[user_zip_code][0]
     for loc in source_features:
         if loc['properties']['appointments_available'] and\
            loc['properties']['provider_brand'].lower() in active_set and\
@@ -98,13 +99,12 @@ def create_in_range_lst(source_features: list, zip_map_dict: dict,
     return in_range_locs
 
 
-def create_message_list(in_range_list: list, user_zip_code: str,
-                        zip_map_dict: dict) -> list:
+def create_message_list(in_range_list: list, user_zip_code: str) -> list:
     """ uses badly formatted in_range_list and converts it into
     a clean list of strings ready to be sent by email.
     """
     message_list = []
-    user_coords = zip_map_dict[user_zip_code][0]
+    user_coords = ZIP_MAP_DICT[user_zip_code][0]
     for location in in_range_list:
         store_name = location['properties']['provider_brand_name']
         address = f"{location['properties']['address']}, " +\
@@ -130,18 +130,17 @@ def get_data(radius: int, user_zip_code: str, state_dict: dict,
     """
     # zip_map_dict = create_zip_dict()
     active_set = active_providers(state_dict['metadata']['provider_brands'])
-    in_range_lst = create_in_range_lst(state_dict['features'], ZIP_MAP_DICT,
+    in_range_lst = create_in_range_lst(state_dict['features'],
                                        user_zip_code, radius,
                                        active_set, False, provider_filter)
-    return create_message_list(in_range_lst, user_zip_code, ZIP_MAP_DICT)
+    return create_message_list(in_range_lst, user_zip_code)
 
 
-def send_sms(phone_number: str, subject: str, body: str, carrier: str,
-             carrier_emails: dict) -> None:
+def send_sms(phone_number: str, subject: str, body: str, carrier: str) -> None:
     """ Sends message through mms """
     # creates SMTP session
     s = smtplib.SMTP('smtp.gmail.com', 587)
-    receiver_email_id = f'{phone_number}@{carrier_emails[carrier]}'
+    receiver_email_id = f'{phone_number}@{CARRIERS_DICT[carrier]}'
     # start TLS for security
     s.starttls()
     # Authentication
@@ -204,14 +203,21 @@ def add_email_user(users_dict: dict, receiver_email_id: str, radius: int,
 
 
 def send_message(receiver: str, subject: str, body: str,
-                 carrier: Optional[str], carriers_dict: dict) -> None:
+                 carrier: Optional[str]) -> None:
     """ Sends mms/email to the user depending on the information they
     provided.
     """
     if carrier is None:
         send_email(receiver, subject, body)
     else:
-        send_sms(receiver, subject, body, carrier, carriers_dict)
+        send_sms(receiver, subject, body, carrier)
+
+
+def list_to_str(lst: list) -> str:
+    str_ret = ''
+    for element in lst:
+        str_ret += f'{element}, '
+    return str_ret[:-1]
 
 
 def update_users_dict(users_dict: dict, start_idx: int) -> int:
@@ -219,6 +225,7 @@ def update_users_dict(users_dict: dict, start_idx: int) -> int:
     Checks if new users got enrolled.
     Program checks starting from start idx.
     """
+    welcome_subj = 'Welcome to Vaccine Notification Bot\n'
     rows = forms.get_spreadsheet_rows()
     row_num = start_idx
     while row_num < len(rows):
@@ -231,15 +238,24 @@ def update_users_dict(users_dict: dict, start_idx: int) -> int:
         provider_filter: list = row[7].split(', ')
         if 'All of the options below' in provider_filter:
             provider_filter = []
+        welcome_body = '\nHere are the parameters chosen:' +\
+            f'\nZip Code: {zip_code}\nRadius: {radius}\nFilter (if any)' +\
+            f':{list_to_str(provider_filter)}'
         if notif_type == 'Phone':
             phone_num = row[5]
             carrier = row[6]
             add_phone_user(users_dict, phone_num,
                            radius, zip_code, state, carrier, provider_filter)
+            send_message(phone_num, welcome_subj,
+                         welcome_body,
+                         carrier)
         else:
             receiver_email = row[4]
             add_email_user(users_dict, receiver_email, radius,
                            zip_code, state, provider_filter)
+            send_message(receiver_email, welcome_subj,
+                         welcome_body,
+                         None)
         row_num += 1
         start_idx = row_num
     return start_idx
@@ -297,7 +313,7 @@ def add_to_state_dict(all_states_dict: dict, state: str) -> None:
 
 
 def send_message_list(message_lst: list, reciever: str, receiver_data: dict,
-                      users_to_remove: list, carriers_dict: dict) -> None:
+                      users_to_remove: list) -> None:
     """ Sends the message list to the receiver """
     new_prev_mes: list = []
     final_message = ''
@@ -310,36 +326,35 @@ def send_message_list(message_lst: list, reciever: str, receiver_data: dict,
             new_prev_mes.append(message)
     receiver_data['usr_prevs_mes'] = new_prev_mes
     final_message += '\nReply stop to stop these notifications.'
-    if final_message != '':
+    if len(new_prev_mes) != 0:
         send_message(reciever,
                      'New Vaccine Locations Detected!',
                      final_message,
-                     receiver_data['carrier'],
-                     carriers_dict)
+                     receiver_data['carrier'])
     if receiver_data['mes_limit'] <= 0:
         users_to_remove.append(reciever)
 
 
-def remove_users(users_to_remove: list, users_dict: dict, end_of_service: str,
-                 carriers_dict: dict) -> None:
+def remove_users(users_to_remove: list, users_dict: dict,
+                 end_of_service: str) -> None:
     """ Sends unsubriction messages and updates users_dict accordingly """
     for reciever in users_to_remove:
         if reciever in users_dict:
             send_message(reciever,
-                         'Subscription expired',
+                         'Subscription expired\n',
                          end_of_service,
-                         users_dict[reciever]['carrier'],
-                         carriers_dict)
+                         users_dict[reciever]['carrier'])
             del users_dict[reciever]
 
 
-def load_dependencies() -> Tuple:
+def load_dependencies() -> dict:
     """ Load the dependency files which are required for program """
+    global CARRIERS_DICT
     with open('mms_gateways.json') as mms:
-        carriers_dict = json.loads(mms.read())
+        CARRIERS_DICT = json.loads(mms.read())
     with open('config.json', 'r') as cfig:
         cfig_dict = json.loads(cfig.read())
-    return carriers_dict, cfig_dict
+    return cfig_dict
 
 
 def check_cache(users_dict: dict) -> Tuple:
@@ -387,6 +402,15 @@ def input_with_timeout(timeout: int) -> str:
     return unput
 
 
+def evaluate_users_requests(list_users_requests: list, users_dict: dict) -> None:
+    for user, request in list_users_requests:
+        if user in users_dict:
+            print(f'User Request: {request}\n')
+            # evaluate request
+            response = ''
+            send_message(user, 'Response', response, users_dict[user]['carrier'])
+
+
 def send_vax_messages() -> None:
     """ This fucntion combines everything together.
     Makes sure user doesn
@@ -396,11 +420,11 @@ def send_vax_messages() -> None:
     global ZIP_MAP_DICT
     ZIP_MAP_DICT = create_zip_dict()
     form = ''
-    carriers_dict, cfig_dict = load_dependencies()
+    cfig_dict = load_dependencies()
     SENDER_EMAIL_ID = str(cfig_dict['sender_email_id'])
     SENDER_EMAIL_ID_PASSWORD = str(cfig_dict['sender_email_id_password'])
     form = cfig_dict['form']
-    end_of_service = 'This is your last message.\n' +\
+    end_of_service = '\nThis is your last message.\n' +\
         'To contunue receiving messages resubscribe here:\n' +\
         form
 
@@ -424,13 +448,16 @@ def send_vax_messages() -> None:
                 forms.setup()
                 previously_disconnected = False
             print(f'Run number: {runs}')
+            all_states_dict: dict = {}
+            users_to_remove, num_checked_emails, bot_requests =\
+                unsubscribers_bot_rqsts(num_checked_emails,
+                                        SENDER_EMAIL_ID,
+                                        SENDER_EMAIL_ID_PASSWORD)
+            remove_users(users_to_remove, users_dict, end_of_service)
+            evaluate_users_requests(bot_requests, users_dict)
+            users_to_remove = []
             start_idx = update_users_dict(
                 users_dict, start_idx)
-            all_states_dict: dict = {}
-            users_to_remove, num_checked_emails =\
-                email_read.unsubscribers(num_checked_emails,
-                                         SENDER_EMAIL_ID,
-                                         SENDER_EMAIL_ID_PASSWORD)
             # receiver either email or phone number
             for reciever in users_dict:
                 add_to_state_dict(
@@ -441,9 +468,8 @@ def send_vax_messages() -> None:
                                                        ['state']],
                                        users_dict[reciever]['provider_filter'])
                 send_message_list(message_lst, reciever, users_dict[reciever],
-                                  users_to_remove, carriers_dict)
-            remove_users(users_to_remove, users_dict, end_of_service,
-                         carriers_dict)
+                                  users_to_remove)
+            remove_users(users_to_remove, users_dict, end_of_service)
             print(f'User data after this run:\n{users_dict}\n')
             start_time = do_backup_frequently(start_time, users_dict,
                                               start_idx, num_checked_emails)
@@ -454,7 +480,8 @@ def send_vax_messages() -> None:
             try:
                 print(eval(uput), '\n')
             except Exception as exp:
-                if str(exp) != 'unexpected EOF while parsing (<string>, line 0)':
+                if str(exp) !=\
+                        'unexpected EOF while parsing (<string>, line 0)':
                     backup_all(users_dict, start_idx, num_checked_emails)
                     print(exp, '\n')
                 else:
