@@ -7,6 +7,8 @@ import smtplib
 import forms
 from email_read import unsubscribers_bot_rqsts
 from typing import Any, Optional, Tuple
+import chatbot
+
 
 SENDER_EMAIL_ID = ''  # don't change
 SENDER_EMAIL_ID_PASSWORD = ''  # don't change
@@ -405,9 +407,9 @@ def input_with_timeout(timeout: int) -> str:
 def evaluate_users_requests(list_users_requests: list, users_dict: dict) -> None:
     for user, request in list_users_requests:
         if user in users_dict:
-            print(f'User Request: {request}\n')
+            # print(f'User Request: {request}\n')
             # evaluate request
-            response = ''
+            response = chatbot.main(request)
             send_message(user, 'Response', response, users_dict[user]['carrier'])
 
 
