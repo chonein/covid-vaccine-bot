@@ -3,19 +3,20 @@ import json
 import re
 import threading
 import time
+import string
 
 API_KEY = "tTwOPEfNOXmB"  # "tTwOPEfNOXmB"
 PROJECT_TOKEN = "ts9X3T1m_aCb"  # thkOKcyhxCmm"
 RUN_TOKEN = "toi8Txr1XDon"  # "tVjyRecA5yuZ"
+startTime = time.time()
+auto_update = False
 
 
 class Data:
     def __init__(self, api_key, project_token):
         self.api_key = api_key
         self.project_token = project_token
-        self.params = {
-            "api_key": self.api_key
-        }
+        self.params = { "api_key": self.api_key }
         self.data = self.get_data()
 
     def get_data(self):
@@ -23,11 +24,13 @@ class Data:
             f'https://www.parsehub.com/api/v2/projects/{self.project_token}/last_ready_run/data', params=self.params)
         data = json.loads(response.text)
         return data
-
     
     # WORLD and USA
     def getStoreData(self, key):
-        return self.data[key]
+        try:
+            return self.data[key], key
+        except KeyError:
+            return 0, 0
 
     # CALIFORNIA
     def getStoreCaliData(self, key):
@@ -35,33 +38,21 @@ class Data:
         return data[0][key]
     
     # CITIES
-    def getStoreCityData(self, city, key):
+    def getStoreCityData(self, find_city, key):
         data = self.data['covid_urls']
         for content in data:
-            if content['name'].lower() == city.lower():
-                return content[key]
+            for city in content['cities']:
+                if city['name'].lower() == find_city.lower():
+                    return city[key]
     
     # Get Cities in a list
     def get_city_list(self):
         city_list = []
         data = self.data['covid_urls']
-        for content in data[1:]:
-            city_list.append(content['name'].lower())
+        for content in data:
+            for city in content['cities']:
+                city_list.append(city['name'].lower())
         return city_list
-    
-    # def get_country_data(self, country):
-    #     data = self.data["country"]
-
-    #     for content in data:
-    #         if content['name'].lower() == country.lower():
-    #             return content
-    #     return "0"
-
-    # def get_list_of_countries(self):
-    #     countries = []
-    #     for country in self.data['country']:
-    #         countries.append(country['name'].lower())
-    #     return countries
 
     def update_data(self):
         response = requests.post(
@@ -74,7 +65,7 @@ class Data:
                 new_data = self.get_data()
                 if new_data != old_data:
                     self.data = new_data
-                    print("Data updated")
+                    print("Data updated!")
                     break
                 time.sleep(5)
 
@@ -82,48 +73,44 @@ class Data:
         t.start()
 
 
+
+
 def main(question: str):
     """ takes in question from user, then trasnslates an answer """
     print("Started Program")
 
     thisData = Data(API_KEY, PROJECT_TOKEN)
-    END_PHRASE = "stop"
-    # country_list = data.get_list_of_countries()
 
-    '''
-    Guideline: 
-    total_cases
-    new_cases
-    total_deaths
-    new_deaths
-    total_recovered
-    active_cases
-    '''
     TOTAL_PATTERNS = {
         # WORLD
         # Total Cases
         re.compile("[\w\s]+ total [\w\s]+ cases"): lambda: thisData.getStoreData('world_total_cases'),
         re.compile("[\w\s]+ total cases"): lambda: thisData.getStoreData('world_total_cases'),
-        
+
         # New Cases
         re.compile("[\w\s]+ total new [\w\s]+ cases"): lambda: thisData.getStoreData('world_new_cases'),
         re.compile("[\w\s]+ total new cases"): lambda: thisData.getStoreData('world_new_cases'),
-        
+
         # Total Deaths
         re.compile("[\w\s]+ total [\w\s]+ deaths"): lambda: thisData.getStoreData('world_total_deaths'),
         re.compile("[\w\s]+ total deaths"): lambda: thisData.getStoreData('world_total_deaths'),
-        
+
         # New Deaths
         re.compile("[\w\s]+ total new [\w\s]+ deaths"): lambda: thisData.getStoreData('world_new_deaths'),
         re.compile("[\w\s]+ total new deaths"): lambda: thisData.getStoreData('world_new_deaths'),
-        
+
         # Total Recovered
         re.compile("[\w\s]+ total [\w\s]+ recovered"): lambda: thisData.getStoreData('world_total_recovered'),
         re.compile("[\w\s]+ total recovered"): lambda: thisData.getStoreData('world_total_recovered'),
 
         # Active Cases
         re.compile("[\w\s]+ total active [\w\s]+ cases"): lambda: thisData.getStoreData('world_active_cases'),
-        re.compile("[\w\s]+ total active cases"): lambda: thisData.getStoreData('world_active_cases'),      
+        re.compile("[\w\s]+ total active cases"): lambda: thisData.getStoreData('world_active_cases'),
+
+        # Total Tests
+        re.compile("[\w\s]+ total [\w\s]+ tests"): lambda: thisData.getStoreData('world_total_tests'),
+        re.compile("[\w\s]+ total tests in [\w\s]"): lambda: thisData.getStoreData('world_total_tests'),
+        re.compile("[\w\s]+ total tests [\w\s]+ in [\w\s]"): lambda: thisData.getStoreData('world_total_tests'),  
     }
 
     USA_PATTERNS = {
@@ -200,6 +187,7 @@ def main(question: str):
         # CITIES
         # Total Cases
         re.compile("[\w\s]+ cases [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_cases'),
+        re.compile("[\w\s]+ cases in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_cases'),
         
         # New Cases
         re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_cases'),
@@ -221,32 +209,20 @@ def main(question: str):
     }
 
     UPDATE_COMMAND = "update"
+    for punc in string.punctuation:
+        question = question.replace(punc, '')
 
-    print("Listening...")
-    text = phrase
-    print(text)
+    text = question
     result = "I'm sorry, I don't understand that phrase."
-
-    # for pattern, func in COUNTRY_PATTERNS.items():
-    #     if pattern.match(text):
-    #         words = set(text.lower().split(" "))
-    #         for country in country_list:
-    #             if country in words:
-    #                 result = func(country)
-    #                 if country == "usa":
-    #                     country = "the U.S."
-    #                 return "There are %s cases in %s." % (result, country)
-
     city_list = thisData.get_city_list()
-    print(city_list)
     
     for pattern, func in CITY_PATTERNS.items():
         if pattern.match(text):
-            words = set(text.lower().split(" "))
-        for city in city_list:
-            if city in words:
-                result = func(city)
-                return "There are %s cases in %s." % (result, city)
+            words = text.lower()
+            for city in city_list:
+                if city in words:
+                    result = func(city)
+                    return "There are %s cases in %s." % (result, city)
 
     for pattern, func in CALIFORNIA_PATTERNS.items():
         if pattern.match(text):
@@ -254,26 +230,59 @@ def main(question: str):
     
     for pattern, func in USA_PATTERNS.items():
         if pattern.match(text):
-            print("match!")
-            return func()
+            result, request = func()
+            if result == 0:
+                result = "No data found for this request."
+            if request == 'usa_total_cases':
+                return "There are have been a total of %s cases in the Unites States." % (result)
+            elif request == 'world_new_cases':
+                return "There are have been a total of %s new cases in the world today." % (result)
+            elif request == 'world_total_deaths':
+                return "There are have been a total of %s deaths in the world." % (result)
+            elif request == 'world_new_deaths':
+                return "There are have been a total of %s new deaths in the world today." % (result)
+            elif request == 'world_total_recovered':
+                return "There are have been a total of %s people recovered in the world." % (result)
+            elif request == 'world_active_cases':
+                return "There a total of %s active cases in the world." % (result)
+            elif request == 'world_total_tests':
+                return "There are have been a total of %s tests given in the world." % (result)
 
     for pattern, func in TOTAL_PATTERNS.items():
         if pattern.match(text):
-            return func()
+            result, request = func()
+            if result == 0:
+                result = "No data found for this request."
+            if request == 'world_total_cases':
+                return "There are have been a total of %s cases in the world." % (result)
+            elif request == 'world_new_cases':
+                return "There are have been a total of %s new cases in the world today." % (result)
+            elif request == 'world_total_deaths':
+                return "There are have been a total of %s deaths in the world." % (result)
+            elif request == 'world_new_deaths':
+                return "There are have been a total of %s new deaths in the world today." % (result)
+            elif request == 'world_total_recovered':
+                return "There are have been a total of %s people recovered in the world." % (result)
+            elif request == 'world_active_cases':
+                return "There a total of %s active cases in the world." % (result)
+            elif request == 'world_total_tests':
+                return "There are have been a total of %s tests given in the world." % (result)
     
-    if text == UPDATE_COMMAND:
+    if auto_update and time.time() - startTime <= 3600:
         result = "Data is being updated. This may take a moment!"
+        startTime = time.time()
         thisData.update_data()
     return result
 
 
 if __name__ == "__main__":
-    # phrase = "How many total cases are there"
+    phrase = "How many total new cases are there"
     # phrase = "How many total cases are there in Canada"
     # phrase = "How many total cases are there in USA"
     # phrase = "How many total cases are there in Argentina"
     # phrase = "How many total deaths are there"
     # phrase = "How many cases in california"
-    phrase = "how many cases in the us"
+    # phrase = "how many cases in napa"
+    phrase = "How many total ca,ses i*n u-s?"
     ans = main(phrase)
     print(ans)
