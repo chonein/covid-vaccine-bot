@@ -64,7 +64,6 @@ def unsubscribers_bot_rqsts(number_of_checked_emails, sender_email_id, sender_em
                         # print only text email parts
                         # print(body)
                         message_lst.append((From, str(body)))
-    print(message_lst)
     for From, body in message_lst:
         # print(From, '\n', body)
         if isinstance(body, str) and len(body) >= 4 and body.lower()[0:4] == 'stop':
@@ -75,10 +74,13 @@ def unsubscribers_bot_rqsts(number_of_checked_emails, sender_email_id, sender_em
                     From[From.find('<')+1:From.find('>')])
         elif isinstance(body, str):
             for month in months:
-                month_idx = body.find('month')
+                month_idx = body.find(f'On {month}')
                 if month_idx != -1:
-                    body = body[0:month_idx+1]
-            body = body.replace('\n', '').replace('\r', '')
+                    body = body[0:month_idx]
+            less_than_idx = body.find('>')
+            if less_than_idx != -1:
+                body = body[0:less_than_idx]
+            body = body.replace('\n', '').replace('\r', '').strip()
             if From[0:2] == '+1':
                 From = From[2:12]
             elif From.find('<') != -1 and From.find('>') != -1:
