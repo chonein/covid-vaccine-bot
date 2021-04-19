@@ -25,14 +25,30 @@ class Data:
         data = json.loads(response.text)
         return data
     
+    # GET HELP
+    def getHelp(self):
+        help_txt = "Some questions you can ask me are:\n" +\
+                    "How many total cases are there?\n" +\
+                    "How many new cases are there?\n" +\
+                    "Give me the deaths in the US.\n" +\
+                    "How many new deaths have there been in the US\n?" +\
+                    "How many people have recovered from COVID in California?\n" +\
+                    "Give me the number of active cases in San Luis Obispo.\n" +\
+                    "How many tests have been given in Santa Clara?\n"
+        return help_txt
+        
+        
+    
     # TIMESTAMP
     def getTimestamp(self):
+        print('here12')
         data = self.data['timestamp']
         return data
 
     # WORLD and USA
     def getStoreData(self, key):
         try:
+            print('here11')
             return self.data[key], key
         except KeyError:
             return 0, 0
@@ -43,6 +59,7 @@ class Data:
     def getStoreCaliData(self, key):
         data = self.data['covid_urls']
         try:
+            print('here10')
             return data[0][key], key
         except KeyError:
             return 0, 0
@@ -54,6 +71,7 @@ class Data:
         
         data = self.data['covid_urls']
         try:
+            print('here13')
             for content in data:
                 for city in content['cities']:
                     if city['name'].lower() == find_city.lower():
@@ -97,13 +115,16 @@ def transcribe_response(pattern_items, text, city_list):
             result, request, city_name = None, None, None
             try:
                 result, request = func()
+
                 # if request == 'total_cases':
                 if (result != 0 and request != 0) and (request.find('world') == -1 or request.find('usa') == -1):
                     city_name = 'California'
             
             except ValueError:
+                print('here2')
                 result = func()
             except TypeError:
+                print('here1')
                 for city in city_list:
                     if city in text:
                         result, request, city_name = func(city)
@@ -141,156 +162,164 @@ def parse_name(request):
         return 'the world', 'world_'
     return None, None
 
+
+def add_chr_to_text(text: str):
+    new_text = 'a '
+    char = 'a'
+    
+    us_list = ['u.s', 'usa', 'u.s.a', 'u.s.', 'u.s.a.', 'united states']
+    for us in us_list:
+        text = text.replace(us, 'us')
+    
+    split = text.split()
+    world = False
+    key_list = ['world', 'global', 'globally', 'worldwide', 'international', 'internatonally']
+    if split[-1] == 'there' and split[-2] == 'are':
+        world = True
+
+    for word in split:
+        if word in key_list:
+            world = True
+        word += ' a '
+        new_text += word
+    return (new_text, world)
+
+
+
 def main(question: str):
     """ takes in question from user, then trasnslates an answer """
     print("Started Program")
 
     thisData = Data(API_KEY, PROJECT_TOKEN)
 
+    ASK_PATTERNS = {
+        # ASK FOR HELP
+        re.compile("[\w\s]+ help [\w\s]+ "): lambda: thisData.getHelp(),
+        re.compile("[\w\s]+ help"): lambda: thisData.getHelp(),
+        re.compile("help [\w\s]+"): lambda: thisData.getHelp(),
+    }
+
     TIMESTAMP_PATTERNS = {
         # TIMESTAMP
-        re.compile("[\w\s]+ last [\w\s]+ updated"): lambda: thisData.getTimestamp(),
-        re.compile("[\w\s]+ last updated"): lambda: thisData.getTimestamp(),
+        re.compile("[\w\s]+ updated [\w\s]+"): lambda: thisData.getTimestamp(),
         re.compile("[\w\s]+ update [\w\s]+ "): lambda: thisData.getTimestamp(),
     }
 
     TOTAL_PATTERNS = {
         # WORLD
-        # New Cases
-        re.compile("[\w\s]+ total new [\w\s]+ cases"): lambda: thisData.getStoreData('world_new_cases'),
-        re.compile("[\w\s]+ total new cases"): lambda: thisData.getStoreData('world_new_cases'),
-        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+ world"): lambda: thisData.getStoreData('world_new_cases'),
-        re.compile("[\w\s]+ new [\w\s]+ world cases"): lambda: thisData.getStoreData('world_new_cases'),
-
-        # New Deaths
-        re.compile("[\w\s]+ total new [\w\s]+ deaths"): lambda: thisData.getStoreData('world_new_deaths'),
-        re.compile("[\w\s]+ total new deaths"): lambda: thisData.getStoreData('world_new_deaths'),
-
         # Total Recovered
-        re.compile("[\w\s]+ total [\w\s]+ recovered"): lambda: thisData.getStoreData('world_total_recovered'),
-        re.compile("[\w\s]+ total recovered"): lambda: thisData.getStoreData('world_total_recovered'),
+        re.compile("[\w\s]+ recovered [\w\s]+"): lambda: thisData.getStoreData('world_total_recovered'),
 
         # Active Cases
-        re.compile("[\w\s]+ total active [\w\s]+ cases"): lambda: thisData.getStoreData('world_active_cases'),
-        re.compile("[\w\s]+ total active cases"): lambda: thisData.getStoreData('world_active_cases'),
+        re.compile("[\w\s]+ active [\w\s]+"): lambda: thisData.getStoreData('world_active_cases'),
 
         # Total Tests
-        re.compile("[\w\s]+ total [\w\s]+ tests"): lambda: thisData.getStoreData('world_total_tests'),
-        re.compile("[\w\s]+ total tests in [\w\s]"): lambda: thisData.getStoreData('world_total_tests'),
-        re.compile("[\w\s]+ total tests [\w\s]+ in [\w\s]"): lambda: thisData.getStoreData('world_total_tests'),
+        re.compile("[\w\s]+ tests [\w\s]+"): lambda: thisData.getStoreData('world_total_tests'),
+
+        # New Cases
+        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreData('world_new_cases'),
+
+        # New Deaths
+        re.compile("[\w\s]+ new [\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreData('world_new_deaths'),
 
         # Total Cases
-        re.compile("[\w\s]+ total [\w\s]+ cases"): lambda: thisData.getStoreData('world_total_cases'),
-        re.compile("[\w\s]+ total cases"): lambda: thisData.getStoreData('world_total_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreData('world_total_cases'),
 
         # Total Deaths
-        re.compile("[\w\s]+ total [\w\s]+ deaths"): lambda: thisData.getStoreData('world_total_deaths'),
-        re.compile("[\w\s]+ total deaths"): lambda: thisData.getStoreData('world_total_deaths'),
-
+        re.compile("[\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreData('world_total_deaths'),
     }
 
     USA_PATTERNS = {
         # US
-        # New Cases
-        re.compile("[\w\s]+ us [\w\s]+ new cases"): lambda: thisData.getStoreData('usa_new_cases'),
-        re.compile("[\w\s]+ new cases in [\w\s]+ us"): lambda: thisData.getStoreData('usa_new_cases'),
-        re.compile("[\w\s]+ new cases [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_new_cases'),
+         # Total Recovered
+        re.compile("[\w\s]+ us [\w\s]+ recovered [\w\s]+"): lambda: thisData.getStoreData('usa_total_recovered'),
+        re.compile("[\w\s]+ recovered [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_total_recovered'),
+       
+        # Active Cases
+        re.compile("[\w\s]+ us [\w\s]+ active [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreData('usa_active_cases'),
+        re.compile("[\w\s]+ active [\w\s]+ cases [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_active_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+ active [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_active_cases'),
+        
+         # Total Tests
+        re.compile("[\w\s]+ us [\w\s]+ tests [\w\s]+"): lambda: thisData.getStoreData('usa_total_tests'),
+        re.compile("[\w\s]+ tests [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_total_tests'),
 
-        # Total Recovered
-        re.compile("[\w\s]+ us [\w\s]+ recovered"): lambda: thisData.getStoreData('usa_total_recovered'),
-        re.compile("[\w\s]+ recovered in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_recovered'),
-        re.compile("[\w\s]+ recovered [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_recovered'),
-        re.compile("[\w\s]+ recovered in us"): lambda: thisData.getStoreData('usa_total_recovered'),
-        re.compile("[\w\s]+ recovered [\w\s]+ in us"): lambda: thisData.getStoreData('usa_total_recovered'),
+        # New Cases
+        re.compile("[\w\s]+ us [\w\s]+ new [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreData('usa_new_cases'),
+        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_new_cases'),
+
+        # New Deaths
+        re.compile("[\w\s]+ us [\w\s]+ new [\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreData('usa_new_deaths'),
+        re.compile("[\w\s]+ new [\w\s]+ deaths [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_new_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+ new [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_new_deaths'),
 
         # Total Cases
-        re.compile("[\w\s]+ us [\w\s]+ cases"): lambda: thisData.getStoreData('usa_total_cases'),
-        re.compile("[\w\s]+ cases in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_cases'),
-        re.compile("[\w\s]+ cases [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_cases'),
-        re.compile("[\w\s]+ cases in us"): lambda: thisData.getStoreData('usa_total_cases'),
+        re.compile("[\w\s]+ us [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreData('usa_total_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_total_cases'),
 
         # Total Deaths
-        re.compile("[\w\s]+ us [\w\s]+ deaths"): lambda: thisData.getStoreData('usa_total_deaths'),
-        re.compile("[\w\s]+ deaths in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_deaths'),
-        re.compile("[\w\s]+ deaths [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_deaths'),
-        
-        # New Deaths
-        re.compile("[\w\s]+ us [\w\s]+ new deaths"): lambda: thisData.getStoreData('usa_new_deaths'),
-        re.compile("[\w\s]+ new deaths in [\w\s]+ us"): lambda: thisData.getStoreData('usa_new_deaths'),
-        re.compile("[\w\s]+ new deaths [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_new_deaths'),
-
-        # Active Cases
-        re.compile("[\w\s]+ us [\w\s]+ active cases"): lambda: thisData.getStoreData('usa_active_cases'),
-        re.compile("[\w\s]+ active cases in [\w\s]+ us"): lambda: thisData.getStoreData('usa_active_cases'),
-        re.compile("[\w\s]+ active cases [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_active_cases'),
-
-        # Total Tests
-        re.compile("[\w\s]+ us [\w\s]+ tests"): lambda: thisData.getStoreData('usa_total_tests'),
-        re.compile("[\w\s]+ tests in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_tests'),
-        re.compile("[\w\s]+ tests [\w\s]+ in [\w\s]+ us"): lambda: thisData.getStoreData('usa_total_tests'),
+        re.compile("[\w\s]+ us [\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreData('usa_total_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+ us [\w\s]+"): lambda: thisData.getStoreData('usa_total_deaths'),
     }
 
     CALIFORNIA_PATTERNS = {
         # CALIFORNIA
-        # New Cases
-        re.compile("[\w\s]+ new [\w\s]+ cases in california"): lambda: thisData.getStoreCaliData('new_cases'),
-        re.compile("[\w\s]+ new cases in [\w\s]+ california"): lambda: thisData.getStoreCaliData('new_cases'),
-        re.compile("[\w\s]+ new cases in california"): lambda: thisData.getStoreCaliData('new_cases'),
-        
-        # Active Cases
-        re.compile("[\w\s]+ active [\w\s]+ cases in california"): lambda: thisData.getStoreCaliData('active_cases'),
-        re.compile("[\w\s]+ active cases in [\w\s]+ california"): lambda: thisData.getStoreCaliData('active_cases'),
-        re.compile("[\w\s]+ active [\w\s]+ in california"): lambda: thisData.getStoreCaliData('active_cases'),
-
         # Total Recovered
-        re.compile("[\w\s]+ recovered [\w\s]+ in california"): lambda: thisData.getStoreCaliData('total_recovered'),
-        re.compile("[\w\s]+ recovered in [\w\s]+ california"): lambda: thisData.getStoreCaliData('total_recovered'),
-        re.compile("[\w\s]+ recovered in california"): lambda: thisData.getStoreData('usa_total_recovered'),
-        re.compile("[\w\s]+ recovered [\w\s] + in california"): lambda: thisData.getStoreData('usa_total_recovered'),
+        re.compile("[\w\s]+ california [\w\s]+ recovered [\w\s]+"): lambda: thisData.getStoreData('usa_total_recovered'),
+        re.compile("[\w\s]+ recovered [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('total_recovered'),
 
-        # New Deaths
-        re.compile("[\w\s]+ new [\w\s]+ deaths in california"): lambda: thisData.getStoreCaliData('new_deaths'),
-        re.compile("[\w\s]+ new deaths in california"): lambda: thisData.getStoreCaliData('new_deaths'),
-        re.compile("[\w\s]+ deaths in [\w\s]+ california"): lambda: thisData.getStoreCaliData('new_deaths'),
-
-        # Total Cases
-        re.compile("[\w\s]+ cases in california"): lambda: thisData.getStoreCaliData('total_cases'),
-        re.compile("[\w\s]+ cases in [\w\s]+ california"): lambda: thisData.getStoreCaliData('total_cases'),
-
-        # Total Deaths
-        re.compile("[\w\s]+ [\w\s]+ deaths in california"): lambda: thisData.getStoreCaliData('total_deaths'),
-        re.compile("[\w\s]+ deaths in [\w\s]+ california"): lambda: thisData.getStoreCaliData('total_deaths'),
+        # Active Cases
+        re.compile("[\w\s]+ california [\w\s]+ active [\w\s]+"): lambda: thisData.getStoreCaliData('active_cases'),
+        re.compile("[\w\s]+ active [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('active_cases'),
 
         # Total Tests
-        re.compile("[\w\s]+ tests [\w\s]+ in california"): lambda: thisData.getStoreCaliData('total_tests'),
-        re.compile("[\w\s]+ tests in [\w\s]+ california"): lambda: thisData.getStoreCaliData('total_tests'),
+        re.compile("[\w\s]+ tests [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('total_tests'),
+        re.compile("[\w\s]+ california [\w\s]+ tests[\w\s]+"): lambda: thisData.getStoreCaliData('total_tests'),
+
+        # New Cases
+        re.compile("[\w\s]+ california [\w\s]+ new [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreCaliData('new_cases'),
+        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('new_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+ new [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('new_cases'),
+        
+        # New Deaths
+        re.compile("[\w\s]+ california [\w\s]+ new [\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreCaliData('new_deaths'),
+        re.compile("[\w\s]+ new [\w\s]+ deaths [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('new_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+ new [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('new_deaths'),
+
+        # Total Cases
+        re.compile("[\w\s]+ cases [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('total_cases'),
+        re.compile("[\w\s]+ california [\w\s]+ cases [\w\s]+"): lambda: thisData.getStoreCaliData('total_cases'),
+
+        # Total Deaths
+        re.compile("[\w\s]+ california [\w\s]+ deaths [\w\s]+"): lambda: thisData.getStoreCaliData('total_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+ california [\w\s]+"): lambda: thisData.getStoreCaliData('total_deaths'),
     }
 
     CITY_PATTERNS = {
         # CITIES
-        
         # Total Recovered
-        re.compile("[\w\s]+ recovered [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_recovered'),
-        
-        # Total Tests
-        re.compile("[\w\s]+ tests [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_tests'),
+        re.compile("[\w\s]+ recovered [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_recovered'),
         
         # Active Cases
-        re.compile("[\w\s]+ active [\w\s]+ cases [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'active_cases'),
-
-                
-        # New Deaths
-        re.compile("[\w\s]+ new [\w\s]+ deaths [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_deaths'),
+        re.compile("[\w\s]+ active [\w\s]+ cases [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'active_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+ active [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'active_cases'),
+        
+        # Total Tests
+        re.compile("[\w\s]+ tests [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_tests'),
         
         # New Cases
-        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_cases'),
+        re.compile("[\w\s]+ new [\w\s]+ cases [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+ new [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_cases'),
 
+        # New Deaths
+        re.compile("[\w\s]+ new [\w\s]+ deaths [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+ new [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'new_deaths'),
+        
         # Total Cases
-        re.compile("[\w\s]+ cases [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_cases'),
-        re.compile("[\w\s]+ cases in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_cases'),
+        re.compile("[\w\s]+ cases [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_cases'),
         
         # Total Deaths
-        re.compile("[\w\s]+ [\w\s]+ deaths [\w\s]+ in [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_deaths'),
+        re.compile("[\w\s]+ deaths [\w\s]+"): lambda city: thisData.getStoreCityData(city, 'total_deaths'),
     }
 
     UPDATE_COMMAND = "update"
@@ -298,20 +327,36 @@ def main(question: str):
         question = question.replace(punc, '')
 
     text = question.lower()
+    key = False
+    text, key = add_chr_to_text(text)
     result = "I'm sorry, I don't understand that phrase."
 
     city_list = thisData.get_city_list()
-    pattern_list = [TIMESTAMP_PATTERNS, CITY_PATTERNS, CALIFORNIA_PATTERNS,  USA_PATTERNS, TOTAL_PATTERNS]
-    for pattern in pattern_list:
-        response = transcribe_response(pattern.items(), text, city_list)
+    pattern_list = [ASK_PATTERNS, TIMESTAMP_PATTERNS, USA_PATTERNS, CALIFORNIA_PATTERNS, CITY_PATTERNS, TOTAL_PATTERNS]
+    
+    if key == True: # check if 'world' is in the word
+        print('key is True')
+        response = transcribe_response(TOTAL_PATTERNS.items(), text, city_list)
         if response == False:
             for pattern, func in TIMESTAMP_PATTERNS.items():
                 text = "when was it last updated"
                 pattern.match(text)
                 result = func()
                 return "No data found for this request. %s" % (result)
-        if response != None:
+        elif response != None:
             return response
+    
+    else:
+        for pattern in pattern_list:
+            response = transcribe_response(pattern.items(), text, city_list)
+            if response == False:
+                for pattern, func in TIMESTAMP_PATTERNS.items():
+                    text = "when was it last updated"
+                    pattern.match(text)
+                    result = func()
+                    return "No data found for this request. %s" % (result)
+            if response != None:
+                return response
              
     if auto_update and time.time() - startTime <= 3600:
         result = "Data is being updated. This may take a moment!"
@@ -326,14 +371,14 @@ if __name__ == "__main__":
     # phrase = "How many total cases are there in USA"
     # phrase = "How many total cases are there in Argentina"
     # phrase = "How many total deaths are there"
-    # phrase = "How many cases in california"
+    # phrase = "How many cases are there"
     # phrase = "how many cases in napa"
-    phrase = "How many total ca,ses i*n u-s?"
-    phrase = "How many cases in napa"
-    phrase = "How many total new cases in the world"
+    # phrase = "How many total ca,ses i*n u-s?"
+    # phrase = "how many active cases are there"
+    phrase = "how many new cases are in the us"
+    # phrase = "how many  cases global"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
-    phrase = "How many total cases in sacramento"
-    # phrase = "How many new cases in California"
+    # phrase = "can you help me"
     ans = main(phrase)
     print(ans)
