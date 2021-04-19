@@ -243,8 +243,8 @@ def update_users_dict(users_dict: dict, start_idx: int) -> int:
         welcome_body = '\nHere are the parameters chosen:' +\
             f'\nZip Code: {zip_code}\nRadius: {radius}\nFilter (if any)' +\
             f':{list_to_str(provider_filter)}\n' +\
-            'You can also ask me questions. If you want to see what I can ' +\
-            'answer simply ask me: What can I ask you?'
+            'You can also ask me questions about covid. If you want to see what I can ' +\
+            'answer simply type help.'
         if notif_type == 'Phone':
             phone_num = row[5]
             carrier = row[6]

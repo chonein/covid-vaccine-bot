@@ -379,6 +379,6 @@ if __name__ == "__main__":
     # phrase = "how many  cases global"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
-    # phrase = "can you help me"
+    # phrase = "help"
     ans = main(phrase)
     print(ans)
