@@ -41,8 +41,8 @@ Column 8: Carrier: (possible values: T-Mobile, Verizon, AT&T)
 This is an example of how your Google sheets should look like:
 https://docs.google.com/spreadsheets/d/1Gw2s845WRvBz2vbm4fxEHGVf10dnA1nAhaG4MkuoPow/edit?usp=sharing
 
+# Requirements:
 To run the program:
-
 Installing Dependencies:
 `pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib`
 
