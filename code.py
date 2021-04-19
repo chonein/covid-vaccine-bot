@@ -410,7 +410,8 @@ def evaluate_users_requests(list_users_requests: list, users_dict: dict) -> None
             # print(f'User Request: {request}\n')
             # evaluate request
             response = chatbot.main(request)
-            send_message(user, 'Response', response, users_dict[user]['carrier'])
+            send_message(user, 'Response', response,
+                         users_dict[user]['carrier'])
 
 
 def send_vax_messages() -> None:
@@ -461,17 +462,18 @@ def send_vax_messages() -> None:
             start_idx = update_users_dict(
                 users_dict, start_idx)
             # receiver either email or phone number
-            for reciever in users_dict:
-                add_to_state_dict(
-                    all_states_dict, users_dict[reciever]['state'])
-                message_lst = get_data(users_dict[reciever]['radius'],
-                                       users_dict[reciever]['user_zip_code'],
-                                       all_states_dict[users_dict[reciever]
-                                                       ['state']],
-                                       users_dict[reciever]['provider_filter'])
-                send_message_list(message_lst, reciever, users_dict[reciever],
-                                  users_to_remove)
-            remove_users(users_to_remove, users_dict, end_of_service)
+            if runs % 8 == 0:
+                for reciever in users_dict:
+                    add_to_state_dict(
+                        all_states_dict, users_dict[reciever]['state'])
+                    message_lst = get_data(users_dict[reciever]['radius'],
+                                           users_dict[reciever]['user_zip_code'],
+                                           all_states_dict[users_dict[reciever]
+                                                           ['state']],
+                                           users_dict[reciever]['provider_filter'])
+                    send_message_list(message_lst, reciever, users_dict[reciever],
+                                      users_to_remove)
+                remove_users(users_to_remove, users_dict, end_of_service)
             print(f'User data after this run:\n{users_dict}\n')
             start_time = do_backup_frequently(start_time, users_dict,
                                               start_idx, num_checked_emails)
