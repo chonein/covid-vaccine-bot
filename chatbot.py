@@ -41,14 +41,12 @@ class Data:
     
     # TIMESTAMP
     def getTimestamp(self):
-        print('here12')
         data = self.data['timestamp']
         return data
 
     # WORLD and USA
     def getStoreData(self, key):
         try:
-            print('here11')
             return self.data[key], key
         except KeyError:
             return 0, 0
@@ -59,7 +57,6 @@ class Data:
     def getStoreCaliData(self, key):
         data = self.data['covid_urls']
         try:
-            print('here10')
             return data[0][key], key
         except KeyError:
             return 0, 0
@@ -121,10 +118,8 @@ def transcribe_response(pattern_items, text, city_list):
                     city_name = 'California'
             
             except ValueError:
-                print('here2')
                 result = func()
             except TypeError:
-                print('here1')
                 for city in city_list:
                     if city in text:
                         result, request, city_name = func(city)
@@ -177,9 +172,13 @@ def add_chr_to_text(text: str):
     if split[-1] == 'there' and split[-2] == 'are':
         world = True
 
-    for word in split:
+    for idx, word in enumerate(split):
         if word in key_list:
             world = True
+        if word == 'san' or word == 'los':
+            if split[idx + 1] == 'luis':
+                word += " " + split[idx + 1] + " " + split[idx + 2]
+            word += " " + split[idx + 1]
         word += ' a '
         new_text += word
     return (new_text, world)
@@ -375,7 +374,7 @@ if __name__ == "__main__":
     # phrase = "how many cases in napa"
     # phrase = "How many total ca,ses i*n u-s?"
     # phrase = "how many active cases are there"
-    phrase = "how many new cases are in the us"
+    phrase = "how many total cases are in the los angeles"
     # phrase = "how many  cases global"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
