@@ -12,7 +12,7 @@ import chatbot
 
 SENDER_EMAIL_ID = ''  # don't change
 SENDER_EMAIL_ID_PASSWORD = ''  # don't change
-REFRESH_PERIOD = 120  # Time period(in seconds) between program refreshes
+REFRESH_PERIOD = 15  # Time period(in seconds) between program refreshes
 TIME_BTWN_BACKUPS = 60*10
 START_IDX_FNAME = 'start_idx.txt'
 CHECKED_EMAILS_FNAME = 'num_checked_emails.txt'
