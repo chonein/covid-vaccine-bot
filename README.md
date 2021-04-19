@@ -15,8 +15,8 @@ Some questions you can ask our Covid Vaccine Bot are:
 - Give me the number of active cases in San Luis Obispo.
 - How many tests have been given in San Jose?
 
-Setup:
 
+# Setup:
 Go to this link https://console.cloud.google.com/home.
 
 Then follow the steps in this YouTube video https://www.youtube.com/watch?v=4ssigWmExak from 3:37 till 9:00.
@@ -46,7 +46,8 @@ To run the program:
 Installing Dependencies:
 `pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib`
 
-Steps:
+
+# Steps:
 1. Run code.py
 2. On your first Run, the program will request the following: the email of the account you will be using to send the SMS/email, the password of that email, the link to the Google Form you are using, the Google Sheet Spreadsheet ID, and the service key (the json file created after watching the YouTube video). Note: A config.json file will be created according to the values you enter.
 3. After that the program will run. The program will continuously check the results of the Google Form and the Vaccine Spotter API. If the program is exited using KeyboardInterupt (ctrl + c), it will automatically save the state at which it stopped at in the files users.json, start_idx.txt, and num_checked_emails.txt. If you want to modify the Google Sheet, you need to stop program execution and delete the users.json, start_idx.txt, and num_checked_emails.txt files. Please note that the only way you should modify the Google Sheet is by deleting entries (fully delete the row in the Google Sheet).
