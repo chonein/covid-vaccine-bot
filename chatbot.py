@@ -301,7 +301,7 @@ def main(question: str):
     result = "I'm sorry, I don't understand that phrase."
 
     city_list = thisData.get_city_list()
-    pattern_list = [TIMESTAMP_PATTERNS, TOTAL_PATTERNS, USA_PATTERNS, CALIFORNIA_PATTERNS, CITY_PATTERNS]
+    pattern_list = [TIMESTAMP_PATTERNS, CITY_PATTERNS, CALIFORNIA_PATTERNS,  USA_PATTERNS, TOTAL_PATTERNS]
     for pattern in pattern_list:
         response = transcribe_response(pattern.items(), text, city_list)
         if response == False:
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     phrase = "How many total new cases in the world"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
-    phrase = "How many recovered cases in US"
+    phrase = "How many total cases in sacramento"
     # phrase = "How many new cases in California"
     ans = main(phrase)
     print(ans)
