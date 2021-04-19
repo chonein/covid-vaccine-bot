@@ -1,7 +1,9 @@
 # Covid-19 Vaccine Notification
 
 Introduction:
-This program sends MMS or Email when a new covid vaccine appointment is found. The website uses the following API https://www.vaccinespotter.org/api/ to get the vaccine availability data.
+This program sends MMS or Email when a new covid vaccine appointment is found. The program uses the following API https://www.vaccinespotter.org/api/ to get the vaccine availability data.
+Users choose their own filters such as zip code, radius, and pharmacies. The users can opt to receive the notifications through phone or email. Additionally, the bot can read user questions about covid and respond to them.
+
 For a person to subscribe to the covid vaccine updates, they need to fill out a Google Form. The data from the Google Form will be read by the program using the Google Sheets API. To stop receiving messages, it is enought to reply `stop` to the MMS or Email.
 
 We are currently hosting our own implementation of this program. You can subscribe with this Google Form: https://forms.gle/5Gn13Ze8CApHmvNE9. Please note that the program is still a very early beta.
