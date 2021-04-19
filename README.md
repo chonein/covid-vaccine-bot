@@ -2,9 +2,18 @@
 
 Introduction:
 This program sends MMS or Email when a new covid vaccine appointment is found. The website uses the following API https://www.vaccinespotter.org/api/ to get the vaccine availability data.
-For a person to subscribe to the covid vaccine updates, they need to fill out a Google Form. The data from the Google Form will be read by the program using the Google Sheets API. To stop receiving messages, it is enought to reply `stop` to the MMS or Email. 
+For a person to subscribe to the covid vaccine updates, they need to fill out a Google Form. The data from the Google Form will be read by the program using the Google Sheets API. To stop receiving messages, it is enought to reply `stop` to the MMS or Email.
 
-I am currently hosting my own implementation of this program. You can subscribe with this Google Form: https://forms.gle/5Gn13Ze8CApHmvNE9. Please note that the program is still a very early beta.
+We are currently hosting our own implementation of this program. You can subscribe with this Google Form: https://forms.gle/5Gn13Ze8CApHmvNE9. Please note that the program is still a very early beta.
+
+Some questions you can ask our Covid Vaccine Bot are:
+- How many total cases are there?
+- How many new cases are there?
+- Give me the deaths in the US.
+- How many new deaths have there been in the US?
+- How many people have recovered from COVID in California?
+- Give me the number of active cases in San Luis Obispo.
+- How many tests have been given in San Jose?
 
 Setup:
 
