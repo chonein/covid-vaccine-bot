@@ -31,7 +31,7 @@ class Data:
                     "How many total cases are there?\n" +\
                     "How many new cases are there?\n" +\
                     "Give me the deaths in the US.\n" +\
-                    "How many new deaths have there been in the US\n?" +\
+                    "How many new deaths have there been in the US?\n" +\
                     "How many people have recovered from COVID in California?\n" +\
                     "Give me the number of active cases in San Luis Obispo.\n" +\
                     "How many tests have been given in Santa Clara?\n"
