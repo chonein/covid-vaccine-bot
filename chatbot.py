@@ -94,7 +94,6 @@ class Data:
 def transcribe_response(pattern_items, text, city_list):
     for pattern, func in pattern_items:
         if pattern.match(text):
-            words = text.lower()
             result, request, city_name = None, None, None
             try:
                 result, request = func()
@@ -106,7 +105,7 @@ def transcribe_response(pattern_items, text, city_list):
                 result = func()
             except TypeError:
                 for city in city_list:
-                    if city in words:
+                    if city in text:
                         result, request, city_name = func(city)
             if result == None and (request == None or city_name == None): # case when nothing reads
                 return "An internal error occurred."
@@ -298,7 +297,7 @@ def main(question: str):
     for punc in string.punctuation:
         question = question.replace(punc, '')
 
-    text = question
+    text = question.lower()
     result = "I'm sorry, I don't understand that phrase."
 
     city_list = thisData.get_city_list()
@@ -334,6 +333,7 @@ if __name__ == "__main__":
     phrase = "How many total new cases in the world"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
-    phrase = "How many recovered cases in us"
+    phrase = "How many recovered cases in US"
+    # phrase = "How many new cases in California"
     ans = main(phrase)
     print(ans)
