@@ -172,10 +172,11 @@ def add_chr_to_text(text: str):
     if split[-1] == 'there' and split[-2] == 'are':
         world = True
 
+    city_list = ['contra', 'santa', 'del', 'el', 'san', 'los']
     for idx, word in enumerate(split):
         if word in key_list:
             world = True
-        if word == 'san' or word == 'los':
+        if word in city_list:
             if split[idx + 1] == 'luis':
                 word += " " + split[idx + 1] + " " + split[idx + 2]
             word += " " + split[idx + 1]
@@ -374,7 +375,7 @@ if __name__ == "__main__":
     # phrase = "how many cases in napa"
     # phrase = "How many total ca,ses i*n u-s?"
     # phrase = "how many active cases are there"
-    phrase = "how many total cases are in the los angeles"
+    phrase = "how many total cases are in the santa anna"
     # phrase = "how many  cases global"
     # phrase = "When was it last updated"
     # phrase = "How many new cases in california"
