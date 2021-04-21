@@ -6,6 +6,8 @@ Users choose their own filters such as zip code, radius, and pharmacies. The use
 
 For a person to subscribe to the covid vaccine updates, they need to fill out a Google Form. The data from the Google Form will be read by the program using the Google Sheets API. To stop receiving messages, it is enought to reply `stop` to the MMS or Email.
 
+Devpost: https://devpost.com/software/covid-vaccine-bot
+
 We are currently hosting our own implementation of this program. You can subscribe with this Google Form: https://forms.gle/5Gn13Ze8CApHmvNE9. Please note that the program is still a very early beta.
 
 Some questions you can ask our Covid Vaccine Bot are:
