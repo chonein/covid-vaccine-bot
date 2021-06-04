@@ -8,7 +8,6 @@ For a person to subscribe to the covid vaccine updates, they need to fill out a 
 
 Devpost: https://devpost.com/software/covid-vaccine-bot
 
-We are currently hosting our own implementation of this program. You can subscribe with this Google Form: https://forms.gle/5Gn13Ze8CApHmvNE9. Please note that the program is still a very early beta.
 
 Some questions you can ask our Covid Vaccine Bot are:
 - How many total cases are there?
